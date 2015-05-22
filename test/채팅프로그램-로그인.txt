@@ -1,0 +1,263 @@
+#include <stdio.h>
+ #include < stdlib.h >
+ #include < string.h >
+ #include <conio.h>
+ #include <windows.h>
+
+//---- #define 부분
+#define MAX  100
+ #define MAX_STUDENT 100 // 최대 학생수
+
+typedef struct Join
+
+{
+     char id[15];
+     char pass[15];
+     char name[30];
+     int age;
+ };
+ Join student[MAX_STUDENT];
+ int i = 0; // 가입자 번호
+//---- 구조체 부분
+typedef struct Tenon
+
+{
+  int ID;
+ }
+ //----- 함수선언부
+void TextColor(int ColorNum);
+ void fnMenu();  // 메뉴
+void fnExit();  // 프로그램 종료
+void fnSave();  // 파일에 저장
+void fnOpen();  // 파일을 오픈
+void MenuSystem();
+ void ShowMenu();
+ void InputStudentData();
+ void InputIDAndPassword();
+ void loginmenu();
+ int FindID();
+
+
+ //----- MAIN부분
+void main()
+ {
+
+MenuSystem();
+  //---- 파일을 오픈
+ fnOpen();
+
+ //----- 메 뉴
+ fnMenu();
+
+ //---- 종 료
+ fnExit();
+
+ //---- 파일에 저장
+ fnSave();
+              
+  
+ }
+ void TextColor(int ColorNum)
+ {
+     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), ColorNum);
+ }
+ void MenuSystem()
+
+{
+
+    int num;
+
+    ShowMenu();
+
+    do
+
+    {
+         do
+
+        {
+             printf( "번호를 입력해주세요 : " );
+             scanf( "%d", &num ); //번호 입력
+        } while( num > 3 || num < 1 );
+
+        printf( "\n" );
+         switch( num )
+
+        {
+             case 1:
+
+                InputStudentData();
+
+                break;
+             case 2:
+
+                InputIDAndPassword();
+     loginmenu();
+
+                break;
+
+ 
+             default:
+
+                break;
+         }
+     } while( num != 3 );
+ }
+
+void ShowMenu()
+
+{
+  printf("\t 로그인 프로그램\n\n");
+     printf( "━━━━━━━━━━━━━━━\n" );
+     printf( "1. 가입   2. 로그인   3. 종료 \n" );
+     printf( "━━━━━━━━━━━━━━━\n" );
+ }
+
+void InputStudentData()
+
+{
+     char yesNo[2]="n";
+
+
+  
+
+    do
+
+    {
+         printf( "이름을 입력해 주세요. : " );
+         scanf( "%s", &student[i].name );
+         printf( "나이를 입력해 주세요. : " );
+         scanf( "%d", &student[i].age );
+         printf( "원하는 아이디를 입력해 주세요. : " );
+         scanf( "%s", &student[i].id );
+         printf( "패스워드를 입력해 주세요. : " );
+         scanf( "%s", &student[i].pass );
+         printf( "확실한가요? : " );
+         scanf( "%s", &yesNo ); // 확실한지 물음
+    } while( strcmp( yesNo, "y" ) != 0 ); // 확실하지 않으면 다시입력
+
+    i++; // 가입자 수가 1명 늘었다
+    printf( "\n" );
+ }
+
+void InputIDAndPassword()
+
+{
+  FindID();
+  int num2=0;
+     char id[15];
+     char pass[15];
+     int found;
+     int corrected = 0; // 1 이 되면 로그인 성공
+    if( i <= 0 )
+     {
+         printf( "입력된 학생의 자료가 없습니다.\n" );
+         InputStudentData();
+     }
+     do
+     {
+         printf( "아이디를 입력해 주세요. : " );
+         scanf( "%s", id );
+         found = FindID( id );
+         if( found >= 0 )
+         {
+             // 아이디 일치
+            printf( "패쓰워드를 입력해 주세요. : " );
+             scanf( "%s", pass );
+             if( strcmp( student[found].pass, pass ) == 0 )
+             {
+                 // 패스워드 일치
+                printf(" 성공적으로 로그인 되셨습니다.!\n" );
+                 printf(" 환영합니다!! %s\n\n", student[found].name );
+     printf("당신의 가계부 데이터를 불러옵니다.\n");
+
+                corrected = 1;
+     scanf("%d",num2);
+   
+         fnMenu();
+
+ //---- 종 료
+ fnExit();
+
+ //---- 파일에 저장
+ fnSave();
+             }
+             else
+             {
+                 printf( "패스워드가 일치하지 않습니다.!\n\n" ); // 패스워드 실패
+            }
+         }
+         if( corrected != 1 )
+         {
+             printf( "아이디 오류!\n\n" ); // 아이디 실패
+        }
+     } while( corrected == 0 ); // 로그인이 성공할때까지 입력
+}
+int FindID( char *id )
+ {
+     int position = 0;
+     int found = -1;
+     while( (position < i) && found < 0 )
+     {
+         if( strcmp( student[position].id, id ) == 0 )
+             found = position;
+         else
+             position++;
+     }
+     return found;
+
+}
+
+
+   system("pause"); // 화면을 멈추는 기능
+ 
+
+
+  
+void fnExit()
+ {
+  system("cls"); // 화면을 지운다
+ printf("┏━━━━━━━━━━━━━━━━━━━━━━━┓ \n");
+  printf("┃        **** 프로그램을 종료합니다 ****     ┃ \n");
+  printf("┗━━━━━━━━━━━━━━━━━━━━━━━┛ \n");
+ }
+
+
+ //---- 저 장
+void fnSave()
+ {
+  FILE *fp;
+  int i;
+  
+  if( (fp = fopen("file.txt", "wb")) == NULL)
+  {
+   printf("\a파일 저장에 실패하였습니다 \n");
+   exit(1);
+  }
+
+
+  printf("파일에저장 : Saving");
+  for(i=0 ; i<5 ; i++)
+  {
+   Sleep(400);
+   putchar('.');
+  }
+  putchar('\n');
+
+ fclose(fp);
+ }
+
+//----- 파일을 오픈 
+void fnOpen()
+ {
+  FILE *fp;
+  int i;
+  
+  if( (fp = fopen("file.txt", "rb")) == NULL)
+  {
+   printf("프로그램을 처음으로 시작합니다 \n");
+   return;
+  }
+
+ 
+
+}
