@@ -1,0 +1,73 @@
+Enter file contents here
+pthread_mutex_t mutex;
+int clientNumber=0;
+int allClientSocket[100];
+
+int main(){
+	if(pthread_mutex_init(%mutex,NULL)!=0){
+		printf("뮤텍스를 생성하는데 실패했습니다.\n");
+		return 0;
+	}
+	int serverSocket = socket( PF_INET, SOCK_STREAM,0);
+	sockaddr_in serverAddress;
+	memset( &serverAddress,0, sizeof(serverAddress));
+	serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_port = htons(PORT);
+	if(bind(serverSocket, (sockaddr *)&serverAddress, sizeof(serverAddress)){
+		printf("서버 소켓을 바인드 하는데 실패했습니다. \n");
+	return 0;
+	}
+	if(listen(serverSocket, 5)==-1){
+		printf("서버 소켓을 listen 모드로 설정하는데 실패했습니다.");
+		return 0;
+	}
+	printf("채팅 서버가 실행되었습니다.\n");
+	printf("**********전체 대화 내용**********\n\n");
+
+	while(1){
+		struct sockaddr_in clientAddress;
+		int clientAddressSize=sizeof(clientAddress);
+		int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress,&clientAddressSize);
+		pthread_mutex_lock(&mutex);
+		clientNumber++;
+		allClientSocket[clientNumber-1]=clientSocket;
+		pthread_mutex_unlock(&mutex);
+		char greetMessage[BUFFERSIZE];
+		sprintf(greetMessage,"[서버] 환영합니다. 대화명을 입력해 주세요\n");
+		write(clientSocket,greetMessage,sizeof(greetMessage));
+		pthread_create(&thread,NULL,broadcastALLClient,(void*)clientSocket);
+	}
+	printf("채팅을 종료 합니다\n");
+	return 0;
+
+	void *broadcastALLClient(void *arg){
+		char fromClient[NAMESIZE+BUFFERSIZE];
+		int myClientSocket=(int)arg;
+		int i=0;
+
+		while(1){
+			int readlen=read(myClientSocket,fromClient,sizeof(fromClient));
+			if(readlen<=0) break;
+			printf("%s\n",fromClient);
+			pthread_mutex_lock(&mutex);
+			for(i=0;i<clientNumber;i++){
+				if(allClientSocket[i] !=myClient){
+					write(allclientSocket[i], fromClient, sizeof(fromClient));
+				}
+			}
+			pthread_mutex_unlock(&mutex);
+		}
+		pthread_mutex_lock(&mutex);
+		for(i=0;i<clientNumber;i++){
+			if(allClientSocket[i]==myClientSocket){
+				for(;i<clientNumber-1;i++){
+					allClientSocket[i]=allClientSocket[i+1];
+				}
+				break;
+			}
+			clientNumber--;
+			pthread_mutex_unlock(&mutex);
+			close(myClientSocket);
+		}
+	}
