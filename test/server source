@@ -1,0 +1,96 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<unistd.h>
+#include<arpa/inet.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<pthread.h>
+#define PORT 5500
+#define BUFFERSIZE 100
+#define NAMESIZE 30
+pthread_t thread;
+pthread_mutex_t mutex;
+int clientNumber=0;
+int allClientSocket[100];
+
+int main()
+{
+if(pthread_mutex_init(&mutex,NULL)!=0){
+printf("뮤¹A텍AØ스½º를¸| 생≫y성¼º하CI는´A데μ￥ 실½C패ÆÐ했Cß습½A니´I다´U.\n");
+return 0;
+}
+int serverSocket = socket( PF_INET, SOCK_STREAM,0);
+sockaddr_in serverAddress;
+memset( &serverAddress,0, sizeof(serverAddress));
+serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+serverAddress.sin_family = AF_INET;
+serverAddress.sin_port = htons(PORT);
+if(bind(serverSocket, (sockaddr *)&serverAddress, sizeof(serverAddress)))
+{
+printf("서¼­버¹o 소¼O켓AI을A≫ 바¹U인AI드μa 하CI는´A데μ￥ 실½C패ÆÐ했Cß습½A니´I다´U. \n");
+return 0;
+}
+if(listen(serverSocket, 5)==-1)
+{
+printf("서¼­버¹o 소¼O켓AI을A≫ listen 모¸ð드μa로·I 설¼³정A¤하CI는´A데μ￥ 실½C패ÆÐ했Cß습½A니´I다´U.");
+return 0;
+}
+printf("채A¤팅ÆA 서¼­버¹o가°¡ 실½C행Ca되μC었¾u습½A니´I다´U.\n");
+printf("**********전Au체A¼ 대´e화E­ 내³≫용¿e**********\n\n");
+
+while(1)
+{
+struct sockaddr_in clientAddress;
+int clientAddressSize=sizeof(clientAddress);
+int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress,&clientAddressSize);
+pthread_mutex_lock(&mutex);
+clientNumber++;
+allClientSocket[clientNumber-1]=clientSocket;
+pthread_mutex_unlock(&mutex);
+char greetMessage[BUFFERSIZE];
+sprintf(greetMessage,"[서¼­버¹o] 환E?영¿μ합CO니´I다´U. 대´e화E­명¸i을A≫ 입AO력·A해CØ 주AO세¼¼요¿a\n");
+write(clientSocket,greetMessage,sizeof(greetMessage));
+pthread_create(&thread,NULL,broadcastALLClient,(void*)clientSocket);
+}
+printf("채A¤팅ÆA을A≫ 종A¾료·a 합CO니´I다´U\n");
+return 0;
+}
+
+void *broadcastALLClient(void *arg)
+{
+char fromClient[NAMESIZE+BUFFERSIZE];
+int myClientSocket=(int)arg;
+int i=0;
+
+while(1)
+{
+int readlen=read(myClientSocket,fromClient,sizeof(fromClient));
+if(readlen<=0) break
+printf("%s\n",fromClient);
+pthread_mutex_lock(&mutex);
+for(i=0;i<clientNumber;i++)
+{
+if(allClientSocket[i] !=myClient)
+{
+write(allclientSocket[i], fromClient, sizeof(fromClient));
+}
+}
+pthread_mutex_unlock(&mutex);
+}
+pthread_mutex_lock(&mutex);
+for(i=0;i<clientNumber;i++)
+{
+if(allClientSocket[i]==myClientSocket)
+{
+for(;i<clientNumber-1;i++)
+{
+allClientSocket[i]=allClientSocket[i+1];
+}
+break
+}
+clientNumber--;
+pthread_mutex_unlock(&mutex);
+close(myClientSocket);
+}
+}
