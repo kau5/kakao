@@ -257,7 +257,4 @@ void fnOpen()
    printf("프로그램을 처음으로 시작합니다 \n");
    return;
   }
-
- 
-
 }
