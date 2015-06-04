@@ -1,0 +1,199 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#include <winsock2.h>
+#include <stdio.h>
+#include <stdlib.h>
+#pragma comment(lib,"ws2_32")
+
+void ErrorDisplay(char *szError);
+
+void ErrorPrint(char *szError);
+
+
+DWORD WINAPI ProcessClient(LPVOID arg)
+{
+
+	int i = 0;
+	SOCKET cs = (SOCKET)arg;;
+	SOCKADDR_IN caddr;
+	int caddrlen;
+	int nSend;
+	caddrlen = sizeof(caddr);
+	char logdata[5][8];
+	char select[10];
+	char log[8];
+	getpeername(cs, (SOCKADDR *)&caddr, &caddrlen);
+
+	while (TRUE){
+		memset(select, 0, sizeof(select));
+		recv(cs, select, sizeof(select), 0);
+		if (strcmp(select, "1") == 0)
+		{
+			memset(logdata[i], 0, sizeof(logdata[i]));
+			recv(cs, logdata[i], sizeof(logdata[i]), 0);
+			printf("ID를생성하엿습니다.(%s)\n", logdata[i]);
+			i++;
+
+		}
+		else if (strcmp(select, "2") == 0)
+		{
+			int j;
+			memset(log, 0, sizeof(log));
+			recv(cs, log, sizeof(log), 0);
+			for (j = 0; j < 5; j++)
+			{
+				if (strcmp(log, logdata[j]) == 0)
+				{
+					printf("로그인 되었습니다.\n");
+					break;
+				}
+			}
+			if (j != 5)
+			{
+				send(cs, "0", sizeof("0"), 0);
+				break;
+			}
+			printf("ID를 다시 입력하여 주십시오.\n");
+			send(cs, "7", sizeof("7"), 0);
+
+		}
+
+	}
+
+	while (TRUE){
+		char buf[1024];
+		int nRecv;
+		memset(buf, 0, sizeof(buf));
+
+		nRecv = recv(cs, buf, sizeof(buf), 0);
+		if (nRecv == SOCKET_ERROR){
+			ErrorPrint("recv()");
+			break;
+		}
+		else if (nRecv == 0){
+			printf("클라이언트와의 접속이 끊어졌습니다.\n");
+		}
+		else{
+			//받은 데이터 출력
+			printf("%d 바이트 수신 :%s\n", nRecv, buf);
+			gets(buf);
+			nSend = send(cs, buf, nRecv, 0);
+			if (nSend == SOCKET_ERROR){
+				ErrorPrint("send()");
+				break;
+			}
+
+		}
+	}
+	return 0;
+}
+void main()
+{
+	int ret;
+	WSADATA wsa;
+	SOCKET s;
+	SOCKADDR_IN saddr;
+	SOCKADDR_IN caddr;
+	int caddrlen;
+	SOCKET cs;
+	int i=0;
+	HANDLE hThread;
+
+	ret = WSAStartup(MAKEWORD(2, 2), &wsa);
+	if (ret != 0){
+		ErrorDisplay("WSAStartup");
+	}
+	s = socket(AF_INET, SOCK_STREAM, 0);
+	if (s == INVALID_SOCKET){
+		ErrorDisplay("socket()");
+	}
+
+
+	ZeroMemory(&saddr, sizeof(saddr));
+	saddr.sin_family = AF_INET;       // 주소체계
+	saddr.sin_port = htons(5000);      // 포트 번호
+	saddr.sin_addr.s_addr = htonl(INADDR_ANY);   // 네트워크 카드 설정
+	//saddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	ret = bind(s, (SOCKADDR *)&saddr, sizeof(saddr));
+	if (ret == SOCKET_ERROR){
+		ErrorDisplay("bind()");
+	}
+
+	ret = listen(s, SOMAXCONN);
+	if (ret == SOCKET_ERROR){
+		ErrorDisplay("listen()");
+	}
+
+
+		while (1)
+		{
+			///< accept()
+			caddrlen = sizeof(caddr); ///< 길이
+			cs = accept(s, (SOCKADDR*)&caddr, &caddrlen);
+
+			///< Error Check
+			if (cs == INVALID_SOCKET)
+			{
+				ErrorPrint("accept()");
+				break;
+			}
+
+			///< 접속한 클라이언트 정보 출력
+			printf("\n[채팅 서버] 클라이언트 접속: IP주소 = %s:%d 님이 대화에 입장하셨습니다.\n",
+				inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
+
+			///< 보내기
+			hThread = CreateThread(NULL, 0, ProcessClient,
+				(LPVOID)cs, 0, NULL);
+			///< Error Check
+			if (hThread == NULL)
+				closesocket(cs);
+			else
+				CloseHandle(hThread);
+		}
+	closesocket(s);
+	WSACleanup();
+}
+
+void ErrorDisplay(char *szError)
+{
+	LPVOID lpBuff;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		WSAGetLastError(), // 에러 코드를 읽어 옴
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpBuff,
+		0,
+		NULL);
+	MessageBox(NULL, (LPCTSTR)lpBuff, szError, MB_ICONSTOP);
+	LocalFree(lpBuff);
+	exit(0);    // 프로그램을 종료
+
+}
+/************************************************************************/
+/*
+함수 : void ErrorPrint( char *szError )
+기능 : 메시지 박스에 에러를 표시하고, 프로그램을 종료(exit)한다.
+인수 : WSAGetLastError()-가장 최근에 발생한 소켓 에러의 번호를 리턴함
+설명 : FormatMessage 함수는 내부적으로 버퍼를 할당하고, 가장 최근에 발생한
+에러에 대한 메시지를 생성한다. 생성된 메시지의 버퍼는 포인터 변수인
+lpBuff가 받아 온다.
+주의 : FormatMessage 함수는 내부적으로 메모리를 할당하기 때문에 LocalFree
+함수를 호출하여 메모리를 해제하여야 한다.                        */
+/************************************************************************/
+void ErrorPrint(char *szError)
+{
+	LPVOID lpBuff;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		WSAGetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpBuff,
+		0,
+		NULL);
+	printf("%s : %s\n", szError, lpBuff);
+	LocalFree(lpBuff);
+}
+
