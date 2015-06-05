@@ -31,7 +31,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		{
 			memset(logdata[i], 0, sizeof(logdata[i]));
 			recv(cs, logdata[i], sizeof(logdata[i]), 0);
-			printf("ID를생성하엿습니다.(%s)\n", logdata[i]);
+			printf("ID를생성하였습니다.(%s)\n", logdata[i]);
 			i++;
 
 		}
