@@ -25,18 +25,6 @@ void main()
 	if (s == INVALID_SOCKET){
 		ErrorDisplay("socket()");
 	}
-	/************************************************************************/
-	/*  함수 : int connect( SOCKET s, const struct sockaddr FAR*  name, int namelen );
-	기능 : 서버에 접속한다.
-	인수 : 1. socket 함수에 의해 생성된 소켓 디스크립터(s)
-	2. SOCKADDR_IN 구조체. (SOCKADDR*는 struct sockaddr FAR*)
-	구조체는 주소체계(AF_INET), Port, 네트워크 주소로 채워진다.
-	3. SOCKADDR_IN 구조체의 크기
-	설명 : 대기 중인 서버에 접속한다. 접속 IP는 127.0.0.1로 한다.
-	반환 : 성공 시 0, 실패 시 SOCKET_ERROR
-	주의 : connect 함수는 블로킹 함수이다. 접속이 완료되었을 때 또는 실패 되었을 때만
-	함수는 리턴한다.                                             */
-	/************************************************************************/
 	saddr.sin_family = AF_INET;
 	saddr.sin_port = htons(5000);
 	saddr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -82,7 +70,7 @@ void main()
 			gets(log);
 			nSend = send(s, log, strlen(log), 0);
 			memset(select, 0, sizeof(select));
-			recv(s,select , sizeof(select), 0);
+			recv(s, select, sizeof(select), 0);
 			if (strcmp(select, "0") == 0)
 			{
 				printf("--------------로그인 되었습니다.-----------------------\n");
@@ -92,7 +80,7 @@ void main()
 			{
 				printf("----------------------ID가 틀립니다.---------------------\n");
 				printf("----------------------다시입력해 주십시오.---------------\n");
-			
+
 			}
 		}
 
@@ -104,7 +92,6 @@ void main()
 		int nRecv;
 		memset(buf, 0, sizeof(buf));
 		gets(buf);
-		//  scanf("%s",buf);  //공백 포함을 안함..!!
 		nSend = send(s, buf, strlen(buf), 0);
 		if (nSend == SOCKET_ERROR){
 			ErrorPrint("send()");

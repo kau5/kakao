@@ -1,0 +1,170 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#include <winsock2.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void ErrorDisplay(char *szError);
+
+void ErrorPrint(char *szError);
+
+void main()
+{
+	int ret;
+	WSADATA wsa;
+	SOCKET s;
+	SOCKADDR_IN saddr;
+	SOCKADDR_IN caddr;
+	int caddrlen;
+	SOCKET cs;
+	int nSend;
+	char logdata[5][8];
+	char select[10];
+	char log[8];
+	int i = 0;
+
+
+	ret = WSAStartup(MAKEWORD(2, 2), &wsa);
+	if (ret != 0){
+		ErrorDisplay("WSAStartup");
+	}
+
+	s = socket(AF_INET, SOCK_STREAM, 0);
+	if (s == INVALID_SOCKET){
+		ErrorDisplay("socket()");
+	}
+
+
+	ZeroMemory(&saddr, sizeof(saddr));
+	saddr.sin_family = AF_INET;       // 주소체계
+	saddr.sin_port = htons(5000);      // 포트 번호
+	saddr.sin_addr.s_addr = htonl(INADDR_ANY);   // 네트워크 카드 설정
+	//saddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	ret = bind(s, (SOCKADDR *)&saddr, sizeof(saddr));
+	if (ret == SOCKET_ERROR){
+		ErrorDisplay("bind()");
+	}
+
+	ret = listen(s, SOMAXCONN);
+	if (ret == SOCKET_ERROR){
+		ErrorDisplay("listen()");
+	}
+	while (TRUE){
+
+
+		caddrlen = sizeof(caddr);
+		cs = accept(s, (SOCKADDR*)&caddr, &caddrlen);
+		if (cs == INVALID_SOCKET){
+			ErrorPrint("accept()");
+			continue;
+		}
+
+		printf("클라이언트 IP  : %s\n", inet_ntoa(caddr.sin_addr));
+		printf("클라이언트 port: %d\n", ntohs(caddr.sin_port));
+		while (TRUE){
+			memset(select, 0, sizeof(select));
+			recv(cs, select, sizeof(select), 0);
+			if (strcmp(select, "1") == 0)
+			{
+				memset(logdata[i], 0, sizeof(logdata[i]));
+				recv(cs, logdata[i], sizeof(logdata[i]), 0);
+				printf("ID를생성하엿습니다.(%s)\n", logdata[i]);
+				i++;
+
+			}
+			else if (strcmp(select, "2") == 0)
+			{
+				int j;
+				memset(log, 0, sizeof(log));
+				recv(cs, log, sizeof(log), 0);
+				for (j = 0; j < 5; j++)
+				{
+					if (strcmp(log, logdata[j]) == 0)
+					{
+						printf("로그인 되었습니다.\n");
+						break;
+					}
+				}
+				if (j != 5)
+				{
+					send(cs, "0", sizeof("0"), 0);
+					break;
+				}
+				printf("ID를 다시 입력하여 주십시오.\n");
+				send(cs, "7", sizeof("7"), 0);
+
+			}
+
+		}
+
+		while (TRUE){
+			char buf[1024];
+			int nRecv;
+			memset(buf, 0, sizeof(buf));
+
+
+			nRecv = recv(cs, buf, sizeof(buf), 0);
+			if (nRecv == SOCKET_ERROR){
+				ErrorPrint("recv()");
+				break;
+			}
+			else if (nRecv == 0){
+				printf("클라이언트와의 접속이 끊어졌습니다.\n");
+			}
+			else{
+				//받은 데이터 출력
+				printf("%d 바이트 수신 :%s\n", nRecv, buf);
+
+				nSend = send(cs, buf, nRecv, 0);
+				if (nSend == SOCKET_ERROR){
+					ErrorPrint("send()");
+					break;
+				}
+
+			}
+		}
+
+
+		closesocket(cs);
+	}
+
+
+
+	closesocket(s);
+
+	WSACleanup();
+}
+
+
+void ErrorDisplay(char *szError)
+{
+	LPVOID lpBuff;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		WSAGetLastError(), // 에러 코드를 읽어 옴
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpBuff,
+		0,
+		NULL);
+	MessageBox(NULL, (LPCTSTR)lpBuff, szError, MB_ICONSTOP);
+	LocalFree(lpBuff);
+	exit(0);    // 프로그램을 종료
+
+}
+
+void ErrorPrint(char *szError)
+{
+	LPVOID lpBuff;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		WSAGetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpBuff,
+		0,
+		NULL);
+	printf("%s : %s\n", szError, lpBuff);
+	LocalFree(lpBuff);
+}
+
